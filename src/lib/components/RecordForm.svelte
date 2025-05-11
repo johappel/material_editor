@@ -11,7 +11,7 @@
 
   let formData = {
     id: null as number | null,
-    name: '', // Geändert von title zu name für Konsistenz
+    title: '', // Geändert von title zu name für Konsistenz
     content_type: 'article',
     url: '',
     description: '',
@@ -35,7 +35,7 @@
       const newFormData = JSON.parse(JSON.stringify(initialData)); // Tiefe Kopie
       formData = {
         id: newFormData.id !== undefined ? newFormData.id : null,
-        name: newFormData.name || newFormData.title || '', // Akzeptiert name oder title aus initialData
+        title: newFormData.title || '',
         content_type: newFormData.content_type || 'article',
         url: newFormData.url || '',
         description: newFormData.description || '',
@@ -50,7 +50,7 @@
         educational_level: [] as string[], // NEU
         content: newFormData.content || null, // NEU
         // Behalte andere Felder aus newFormData, falls vorhanden
-        ...Object.fromEntries(Object.entries(newFormData).filter(([key]) => !['id', 'name', 'title', 'content_type', 'url', 'description', 'summary', 'date_published', 'created_at', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)))
+        ...Object.fromEntries(Object.entries(newFormData).filter(([key]) => !['id', 'title', 'content_type', 'url', 'description', 'summary', 'date_published', 'created_at', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)))
       };
 
       if (newFormData.keywords && typeof newFormData.keywords === 'string') {
@@ -102,7 +102,7 @@
 
     } else if (!initialData) {
       formData = {
-        id: null, name: '', content_type: 'article', url: '', description: '', summary: '', 
+        id: null, title: '', content_type: 'article', url: '', description: '', summary: '', 
         content: '', thumbnail: '', date_published: new Date().toISOString().slice(0, 10),
         keywords: [], author: [], publisher: [],
         links: [], activities: [], educational_level: [], // NEU
@@ -186,8 +186,8 @@
     </div>
 
     <div class="form-field">
-      <label for="name">Titel / Name:</label>
-      <input type="text" id="name" bind:value={formData.name} required /> <!-- Geändert zu formData.name -->
+      <label for="title">Titel / Name:</label>
+      <input type="text" id="title" bind:value={formData.title} required /> 
     </div>
 
     <div class="form-field">
