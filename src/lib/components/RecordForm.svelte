@@ -15,6 +15,7 @@
     content_type: 'article',
     url: '',
     description: '',
+    thumbnail: '', // NEU
     summary: '', // Hinzugefügt für das summary-Feld
     date_published: new Date().toISOString().slice(0, 10),
     keywords: [] as string[],
@@ -23,6 +24,7 @@
     links: [] as string[], // NEU
     activities: [] as string[], // NEU
     educational_level: [] as string[], // NEU
+    content: null, // NEU
   };
   let isLoading = false;
   let error: string | null = null;
@@ -37,6 +39,7 @@
         content_type: newFormData.content_type || 'article',
         url: newFormData.url || '',
         description: newFormData.description || '',
+        thumbnail: newFormData.thumbnail || '', // NEU
         summary: newFormData.summary || '',
         date_published: newFormData.date_published || newFormData.created_at || new Date().toISOString().slice(0, 10),
         keywords: [] as string[], 
@@ -45,6 +48,7 @@
         links: [] as string[], // NEU
         activities: [] as string[], // NEU
         educational_level: [] as string[], // NEU
+        content: newFormData.content || null, // NEU
         // Behalte andere Felder aus newFormData, falls vorhanden
         ...Object.fromEntries(Object.entries(newFormData).filter(([key]) => !['id', 'name', 'title', 'content_type', 'url', 'description', 'summary', 'date_published', 'created_at', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)))
       };
@@ -98,8 +102,8 @@
 
     } else if (!initialData) {
       formData = {
-        id: null, name: '', content_type: 'article', url: '', description: '', summary: '',
-        date_published: new Date().toISOString().slice(0, 10),
+        id: null, name: '', content_type: 'article', url: '', description: '', summary: '', 
+        content: '', thumbnail: '', date_published: new Date().toISOString().slice(0, 10),
         keywords: [], author: [], publisher: [],
         links: [], activities: [], educational_level: [], // NEU
       };
@@ -214,8 +218,12 @@
     </div>
 
     <div class="form-field">
-      <label for="date_published">Date Published:</label>
+      <label for="date_published">Veröffentlicht:</label>
       <input type="text" id="date_published" bind:value={formData.date_published} /> <!-- Geändert zu formData.date_published -->
+    </div>
+    <div class="form-field">
+      <label for="thumbnail">URL des Beitragsbilds:</label>
+      <input type="text" id="thumbnail" bind:value={formData.thumbnail} /> <!-- Geändert zu formData.date_published -->
     </div>
 
     <div class="form-field">
@@ -228,7 +236,7 @@
       <AuthorsInput authors={formData.author} onAuthorsChange={handleAuthorsChange} /> <!-- Korrekte Prop-Übergabe -->
     </div>
     <div class="form-field">
-      <label for="publishers">Publisher:</label>
+      <label for="publishers">Herausgeber:</label>
       <PublishersInput publishers={formData.publisher} onPublishersChange={handlePublishersChange} /> <!-- Korrekte Prop-Übergabe -->
     </div>
 
@@ -240,24 +248,30 @@
     </div>
 
     <div class="form-field">
-      <label for="activities">Activities:</label>
+      <label for="activities">Lern-Aktivitäten:</label>
       <KeywordsInput keywords={formData.activities} on:change={handleActivitiesChange} placeholder="Aktivität hinzufügen..." />
     </div>
 
     <div class="form-field">
-      <label for="educational_level">Educational Level:</label>
+      <label for="educational_level">Bildungsstufen:</label>
       <KeywordsInput keywords={formData.educational_level} on:change={handleEducationalLevelChange} placeholder="Bildungsstufe hinzufügen..." />
     </div>
 
+    <div class="form-field">
+      <label for="content">Raw Content:</label>
+      <textarea id="content" rows="4" bind:value={formData.content}></textarea> <!-- Geändert zu formData.summary -->
+    </div>
+
+    <!-- Debug JSON-Felder
     <div class="form-field debug-json" style="margin-top: 20px;">
-        <div class="json-field-label">Andere JSON-Felder (Rohansicht zum Debuggen):</div> <!-- Geändert zu div für a11y -->
+        <div class="json-field-label">Andere JSON-Felder (Rohansicht zum Debuggen):</div> 
         {#each Object.entries(formData) as [key, value]}
             {#if typeof value === 'object' && value !== null && !['keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)}
                 <div class="json-field-debug">
                     <strong>{key}:</strong>
                     <textarea rows="3" readonly>{JSON.stringify(value, null, 2)}</textarea>
                 </div>
-            {:else if !['id', 'name', 'content_type', 'url', 'description', 'summary', 'date_published', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key) && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))}
+            {:else if !['id', 'title', 'content','thumbnail', 'content_type', 'url', 'description', 'summary', 'date_published', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key) && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))}
                  <div class="json-field-debug">
                     <strong>{key} (als String, potenziell JSON):</strong>
                     <textarea rows="3" bind:value={formData[key]} placeholder="JSON-String eingeben"></textarea>
@@ -265,6 +279,7 @@
             {/if}
         {/each}
     </div>
+    -->
 
     <button type="submit" class="submit-button" disabled={isLoading}>
       {isLoading ? 'Speichern...' : 'Datensatz Speichern'}
