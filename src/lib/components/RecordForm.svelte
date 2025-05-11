@@ -185,7 +185,7 @@
           initialValue: formData.content || '',
           spellChecker: false,
           minHeight: '200px', 
-          maxHeight: '200px', 
+          maxHeight: '600px', // Korrigiert: Maximale Höhe für den Editor
           toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
         });
         contentEditor.codemirror.on('change', () => {
@@ -197,7 +197,7 @@
           if (contentEditor) {
             const cmInstance = contentEditor.codemirror;
             const wrapper = cmInstance.getWrapperElement();
-            wrapper.style.height = '600px'; 
+            wrapper.style.height = '400px'; // Höhe bei Fokus
             cmInstance.refresh(); 
           }
         });
