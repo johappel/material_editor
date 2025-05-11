@@ -1,12 +1,13 @@
 <!-- src/lib/components/KeywordsInput.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  // import { createEventDispatcher } from 'svelte'; // Entfernt
 
   export let keywords: string[] = [];
   export let placeholder: string = "Neues Keyword..."; // Standard-Platzhalter
+  export let onChange: (updatedKeywords: string[]) => void; // Hinzugefügte Callback-Prop
   let newKeyword = '';
 
-  const dispatch = createEventDispatcher();
+  // const dispatch = createEventDispatcher(); // Entfernt
 
   $: actualKeywords = Array.isArray(keywords) ? keywords : [];
 
@@ -14,7 +15,10 @@
     const trimmedKeyword = newKeyword.trim();
     if (trimmedKeyword && !actualKeywords.includes(trimmedKeyword)) {
       const updatedKeywords = [...actualKeywords, trimmedKeyword];
-      dispatch('change', updatedKeywords);
+      // dispatch('change', updatedKeywords); // Ersetzt
+      if (onChange) {
+        onChange(updatedKeywords);
+      }
       newKeyword = '';
     } else if (actualKeywords.includes(trimmedKeyword)) {
       console.warn("Eintrag bereits vorhanden:", trimmedKeyword);
@@ -24,7 +28,10 @@
 
   function removeKeyword(index: number) {
     const updatedKeywords = actualKeywords.filter((_, i) => i !== index);
-    dispatch('change', updatedKeywords);
+    // dispatch('change', updatedKeywords); // Ersetzt
+    if (onChange) {
+      onChange(updatedKeywords);
+    }
   }
 
   function handleKeydown(event: KeyboardEvent) {

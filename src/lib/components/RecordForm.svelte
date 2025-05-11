@@ -1,117 +1,247 @@
 <!-- src/lib/components/RecordForm.svelte -->
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount, onDestroy /*, createEventDispatcher */ } from 'svelte'; // createEventDispatcher entfernt
+  import { browser } from '$app/environment';
   import KeywordsInput from './KeywordsInput.svelte';
   import AuthorsInput from './AuthorsInput.svelte';
   import PublishersInput from './PublishersInput.svelte';
+  import 'easymde/dist/easymde.min.css';
 
   export let initialData: any = null;
-  
-  const dispatch = createEventDispatcher();
+  export let onSaved: (record: any) => void = () => {};
+
+  // Typ für die EasyMDE-Klasse und -Instanz definieren
+  type EasyMDEConstructor = typeof import('easymde');
+  type EasyMDEInstance = import('easymde');
+
+  let EasyMDE: EasyMDEConstructor;
 
   let formData = {
     id: null as number | null,
-    title: '', // Geändert von title zu name für Konsistenz
+    title: '', 
     content_type: 'article',
     url: '',
-    description: '',
-    thumbnail: '', // NEU
-    summary: '', // Hinzugefügt für das summary-Feld
+    description: '', // Wird von EasyMDE verwaltet
+    thumbnail: '', 
+    summary: '', // Wird von EasyMDE verwaltet
     date_published: new Date().toISOString().slice(0, 10),
     keywords: [] as string[],
     author: [] as { name: string; url: string }[],
     publisher: [] as { name: string; url: string }[],
-    links: [] as string[], // NEU
-    activities: [] as string[], // NEU
-    educational_level: [] as string[], // NEU
-    content: null, // NEU
+    links: [] as string[], 
+    activities: [] as string[], 
+    educational_level: [] as string[], 
+    content: '' as string | null, // Wird von EasyMDE verwaltet, sicherstellen, dass es ein String ist
   };
   let isLoading = false;
   let error: string | null = null;
   let successMessage = '';
 
+  let descriptionEditor: EasyMDEInstance | null = null;
+  let summaryEditor: EasyMDEInstance | null = null;
+  let contentEditor: EasyMDEInstance | null = null;
+  let descriptionTextarea: HTMLTextAreaElement;
+  let summaryTextarea: HTMLTextAreaElement;
+  let contentTextarea: HTMLTextAreaElement;
+
   $: {
     if (initialData && typeof initialData === 'object' && Object.keys(initialData).length > 0) {
-      const newFormData = JSON.parse(JSON.stringify(initialData)); // Tiefe Kopie
+      const newFormDataCopy = JSON.parse(JSON.stringify(initialData)); 
       formData = {
-        id: newFormData.id !== undefined ? newFormData.id : null,
-        title: newFormData.title || '',
-        content_type: newFormData.content_type || 'article',
-        url: newFormData.url || '',
-        description: newFormData.description || '',
-        thumbnail: newFormData.thumbnail || '', // NEU
-        summary: newFormData.summary || '',
-        date_published: newFormData.date_published || newFormData.created_at || new Date().toISOString().slice(0, 10),
+        id: newFormDataCopy.id !== undefined ? newFormDataCopy.id : null,
+        title: newFormDataCopy.title || '',
+        content_type: newFormDataCopy.content_type || 'article',
+        url: newFormDataCopy.url || '',
+        description: newFormDataCopy.description || '', 
+        thumbnail: newFormDataCopy.thumbnail || '', 
+        summary: newFormDataCopy.summary || '', 
+        date_published: newFormDataCopy.date_published || newFormDataCopy.created_at || new Date().toISOString().slice(0, 10),
         keywords: [] as string[], 
         author: [] as { name: string; url: string }[],
         publisher: [] as { name: string; url: string }[],
-        links: [] as string[], // NEU
-        activities: [] as string[], // NEU
-        educational_level: [] as string[], // NEU
-        content: newFormData.content || null, // NEU
-        // Behalte andere Felder aus newFormData, falls vorhanden
-        ...Object.fromEntries(Object.entries(newFormData).filter(([key]) => !['id', 'title', 'content_type', 'url', 'description', 'summary', 'date_published', 'created_at', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)))
+        links: [] as string[], 
+        activities: [] as string[], 
+        educational_level: [] as string[], 
+        content: newFormDataCopy.content || '', 
+        ...Object.fromEntries(Object.entries(newFormDataCopy).filter(([key]) => !['id', 'title', 'content_type', 'url', 'description', 'thumbnail', 'summary', 'date_published', 'created_at', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level', 'content'].includes(key)))
       };
 
-      if (newFormData.keywords && typeof newFormData.keywords === 'string') {
-        try { formData.keywords = JSON.parse(newFormData.keywords); } catch (e) { formData.keywords = []; }
-      } else if (Array.isArray(newFormData.keywords)) {
-        formData.keywords = newFormData.keywords;
+      if (newFormDataCopy.keywords && typeof newFormDataCopy.keywords === 'string') {
+        try { formData.keywords = JSON.parse(newFormDataCopy.keywords); } catch (e) { formData.keywords = []; }
+      } else if (Array.isArray(newFormDataCopy.keywords)) {
+        formData.keywords = newFormDataCopy.keywords;
       } else { formData.keywords = []; }
 
-      if (newFormData.author && typeof newFormData.author === 'string') {
+      if (newFormDataCopy.author && typeof newFormDataCopy.author === 'string') {
         try {
-          if (!newFormData.author.trim().startsWith('[') && !newFormData.author.trim().startsWith('{')) {
-            formData.author = [{ name: newFormData.author.trim(), url: '' }];
-          } else { formData.author = JSON.parse(newFormData.author); }
+          if (!newFormDataCopy.author.trim().startsWith('[') && !newFormDataCopy.author.trim().startsWith('{')) {
+            formData.author = [{ name: newFormDataCopy.author.trim(), url: '' }];
+          } else { formData.author = JSON.parse(newFormDataCopy.author); }
         } catch (e) { formData.author = []; }
-      } else if (Array.isArray(newFormData.author)) {
-        formData.author = newFormData.author;
+      } else if (Array.isArray(newFormDataCopy.author)) {
+        formData.author = newFormDataCopy.author;
       } else { formData.author = []; }
 
-      if (newFormData.publisher && typeof newFormData.publisher === 'string') {
+      if (newFormDataCopy.publisher && typeof newFormDataCopy.publisher === 'string') {
         try {
-          if (!newFormData.publisher.trim().startsWith('[') && !newFormData.publisher.trim().startsWith('{')) {
+          if (!newFormDataCopy.publisher.trim().startsWith('[') && !newFormDataCopy.publisher.trim().startsWith('{')) {
             formData.publisher = []; 
-          } else { formData.publisher = JSON.parse(newFormData.publisher); }
+          } else { formData.publisher = JSON.parse(newFormDataCopy.publisher); }
         } catch (e) { formData.publisher = []; }
-      } else if (Array.isArray(newFormData.publisher)) {
-        formData.publisher = newFormData.publisher;
+      } else if (Array.isArray(newFormDataCopy.publisher)) {
+        formData.publisher = newFormDataCopy.publisher;
       } else { formData.publisher = []; }
 
-      // Links (NEU)
-      if (newFormData.links && typeof newFormData.links === 'string') {
-        try { formData.links = JSON.parse(newFormData.links); } catch (e) { formData.links = []; }
-      } else if (Array.isArray(newFormData.links)) {
-        formData.links = newFormData.links;
+      if (newFormDataCopy.links && typeof newFormDataCopy.links === 'string') {
+        try { formData.links = JSON.parse(newFormDataCopy.links); } catch (e) { formData.links = []; }
+      } else if (Array.isArray(newFormDataCopy.links)) {
+        formData.links = newFormDataCopy.links;
       } else { formData.links = []; }
       
-      // Activities (NEU)
-      if (newFormData.activities && typeof newFormData.activities === 'string') {
-        try { formData.activities = JSON.parse(newFormData.activities); } catch (e) { formData.activities = []; }
-      } else if (Array.isArray(newFormData.activities)) {
-        formData.activities = newFormData.activities;
+      if (newFormDataCopy.activities && typeof newFormDataCopy.activities === 'string') {
+        try { formData.activities = JSON.parse(newFormDataCopy.activities); } catch (e) { formData.activities = []; }
+      } else if (Array.isArray(newFormDataCopy.activities)) {
+        formData.activities = newFormDataCopy.activities;
       } else { formData.activities = []; }
 
-      // Educational Level (NEU)
-      if (newFormData.educational_level && typeof newFormData.educational_level === 'string') {
-        try { formData.educational_level = JSON.parse(newFormData.educational_level); } catch (e) { formData.educational_level = []; }
-      } else if (Array.isArray(newFormData.educational_level)) {
-        formData.educational_level = newFormData.educational_level;
+      if (newFormDataCopy.educational_level && typeof newFormDataCopy.educational_level === 'string') {
+        try { formData.educational_level = JSON.parse(newFormDataCopy.educational_level); } catch (e) { formData.educational_level = []; }
+      } else if (Array.isArray(newFormDataCopy.educational_level)) {
+        formData.educational_level = newFormDataCopy.educational_level;
       } else { formData.educational_level = []; }
 
+      if (browser) { 
+        if (descriptionEditor && descriptionEditor.value() !== formData.description) {
+          descriptionEditor.value(formData.description || '');
+        }
+        if (summaryEditor && summaryEditor.value() !== formData.summary) {
+          summaryEditor.value(formData.summary || '');
+        }
+        if (contentEditor && contentEditor.value() !== formData.content) {
+          contentEditor.value(formData.content || '');
+        }
+      }
+
     } else if (!initialData) {
+      const defaultDate = new Date().toISOString().slice(0, 10);
       formData = {
-        id: null, title: '', content_type: 'article', url: '', description: '', summary: '', 
-        content: '', thumbnail: '', date_published: new Date().toISOString().slice(0, 10),
+        id: null, title: '', content_type: 'article', url: '', description: '', thumbnail: '', summary: '', 
+        content: '', date_published: defaultDate,
         keywords: [], author: [], publisher: [],
-        links: [], activities: [], educational_level: [], // NEU
+        links: [], activities: [], educational_level: [], 
       };
+       if (browser) { 
+        if (descriptionEditor) {
+          descriptionEditor.value('');
+        }
+        if (summaryEditor) {
+          summaryEditor.value('');
+        }
+        if (contentEditor) {
+          contentEditor.value('');
+        }
+      }
     }
   }
 
-  function handleKeywordsChange(event: CustomEvent<string[]>) {
-    formData.keywords = event.detail;
+  onMount(async () => {
+    if (browser) { 
+      const module = await import('easymde');
+      EasyMDE = module.default; 
+
+      if (descriptionTextarea && EasyMDE) {
+        descriptionEditor = new EasyMDE({
+          element: descriptionTextarea,
+          initialValue: formData.description || '',
+          spellChecker: false,
+          minHeight: '100px',
+          toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
+        });
+        descriptionEditor.codemirror.on('change', () => {
+          if (descriptionEditor) {
+            formData.description = descriptionEditor.value();
+          }
+        });
+      }
+
+      if (summaryTextarea && EasyMDE) {
+        summaryEditor = new EasyMDE({
+          element: summaryTextarea,
+          initialValue: formData.summary || '',
+          spellChecker: false,
+          minHeight: '150px',
+          toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
+        });
+        summaryEditor.codemirror.on('change', () => {
+          if (summaryEditor) {
+            formData.summary = summaryEditor.value();
+          }
+        });
+      }
+
+      if (contentTextarea && EasyMDE) {
+        contentEditor = new EasyMDE({
+          element: contentTextarea,
+          initialValue: formData.content || '',
+          spellChecker: false,
+          minHeight: '200px', 
+          maxHeight: '200px', 
+          toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
+        });
+        contentEditor.codemirror.on('change', () => {
+          if (contentEditor) {
+            formData.content = contentEditor.value();
+          }
+        });
+        contentEditor.codemirror.on('focus', () => {
+          if (contentEditor) {
+            const cmInstance = contentEditor.codemirror;
+            const wrapper = cmInstance.getWrapperElement();
+            wrapper.style.height = '600px'; 
+            cmInstance.refresh(); 
+          }
+        });
+        contentEditor.codemirror.on('blur', () => {
+          if (contentEditor) {
+            const cmInstance = contentEditor.codemirror;
+            const wrapper = cmInstance.getWrapperElement();
+            wrapper.style.height = ''; // Setzt auf CSS/minHeight zurück
+            cmInstance.refresh();
+          }
+        });
+      }
+      
+      if (descriptionEditor && formData.description !== descriptionEditor.value()) {
+        descriptionEditor.value(formData.description || '');
+      }
+      if (summaryEditor && formData.summary !== summaryEditor.value()) {
+        summaryEditor.value(formData.summary || '');
+      }
+      if (contentEditor && formData.content !== contentEditor.value()) {
+        contentEditor.value(formData.content || '');
+      }
+    }
+  });
+
+  onDestroy(() => {
+    if (browser) { 
+      if (descriptionEditor) {
+        descriptionEditor.toTextArea();
+        descriptionEditor = null;
+      }
+      if (summaryEditor) {
+        summaryEditor.toTextArea();
+        summaryEditor = null;
+      }
+      if (contentEditor) {
+        contentEditor.toTextArea();
+        contentEditor = null;
+      }
+    }
+  });
+
+  function handleKeywordsChange(updatedKeywords: string[]) { 
+    formData.keywords = updatedKeywords;
   }
 
   function handleAuthorsChange(updatedAuthors: { name: string; url: string }[]) {
@@ -122,39 +252,48 @@
     formData.publisher = updatedPublishers;
   }
 
-  // NEUE HANDLER
-  function handleLinksChange(event: CustomEvent<string[]>) {
-    formData.links = event.detail;
+  function handleLinksChange(updatedLinks: string[]) { 
+    formData.links = updatedLinks;
   }
 
-  function handleActivitiesChange(event: CustomEvent<string[]>) {
-    formData.activities = event.detail;
+  function handleActivitiesChange(updatedActivities: string[]) { 
+    formData.activities = updatedActivities;
   }
 
-  function handleEducationalLevelChange(event: CustomEvent<string[]>) {
-    formData.educational_level = event.detail;
+  function handleEducationalLevelChange(updatedEducationalLevels: string[]) { 
+    formData.educational_level = updatedEducationalLevels;
   }
 
   async function handleSubmit() {
     isLoading = true;
     error = null;
     successMessage = '';
+    if (browser) { 
+      if (descriptionEditor) {
+        formData.description = descriptionEditor.value();
+      }
+      if (summaryEditor) {
+        formData.summary = summaryEditor.value();
+      }
+      if (contentEditor) {
+        formData.content = contentEditor.value();
+      }
+    }
     const dataToSave = {
       ...formData,
       keywords: JSON.stringify(Array.isArray(formData.keywords) ? formData.keywords : []),
       author: JSON.stringify(Array.isArray(formData.author) ? formData.author : []),
       publisher: JSON.stringify(Array.isArray(formData.publisher) ? formData.publisher : []),
-      links: JSON.stringify(Array.isArray(formData.links) ? formData.links : []), // NEU
-      activities: JSON.stringify(Array.isArray(formData.activities) ? formData.activities : []), // NEU
-      educational_level: JSON.stringify(Array.isArray(formData.educational_level) ? formData.educational_level : []), // NEU
+      links: JSON.stringify(Array.isArray(formData.links) ? formData.links : []), 
+      activities: JSON.stringify(Array.isArray(formData.activities) ? formData.activities : []), 
+      educational_level: JSON.stringify(Array.isArray(formData.educational_level) ? formData.educational_level : []), 
     };
-    // ... (Rest der handleSubmit Funktion bleibt gleich)
     console.log("Sende Daten:", dataToSave);
     try {
       const response = await import('../../utils/api.js').then(m => m.saveRecord(dataToSave));
       successMessage = `Datensatz ${response.id ? '(ID: ' + response.id + ')' : ''} erfolgreich gespeichert!`;
       console.log("Antwort vom Server:", response);
-      dispatch('saved', response); 
+      onSaved(response);
     } catch (e: any) {
       error = e.message || "Ein Fehler ist beim Speichern aufgetreten.";
     } finally {
@@ -167,7 +306,6 @@
   <p>Lade Formulardaten oder erstelle neuen Datensatz...</p>
 {:else if initialData || formData.id}
   <form on:submit|preventDefault={handleSubmit} class="record-form">
-    <!-- ... (Form Status unverändert) ... -->
     <div class="form-status">
       {#if isLoading}
         <p class="loading-message">Speichern...</p>
@@ -183,7 +321,12 @@
     <div class="form-field">
       <label for="id">ID:</label>
       <input type="text" id="id" bind:value={formData.id} readonly />
+      <a href={'https://material.rpi-virtuell.de/?p='+initialData.material_id} target="_blank" style="float: inline-end;">
+        Im Materialpool anschauen
+      </a>
     </div>
+    
+    
 
     <div class="form-field">
       <label for="title">Titel / Name:</label>
@@ -210,76 +353,57 @@
     
     <div class="form-field">
       <label for="description">Beschreibung:</label>
-      <textarea id="description" rows="4" bind:value={formData.description}></textarea>
+      <textarea id="description" bind:this={descriptionTextarea}></textarea>
     </div>
     <div class="form-field">
       <label for="summary">Analyse:</label>
-      <textarea id="summary" rows="4" bind:value={formData.summary}></textarea> <!-- Geändert zu formData.summary -->
+      <textarea id="summary" bind:this={summaryTextarea}></textarea> 
     </div>
 
     <div class="form-field">
       <label for="date_published">Veröffentlicht:</label>
-      <input type="text" id="date_published" bind:value={formData.date_published} /> <!-- Geändert zu formData.date_published -->
+      <input type="text" id="date_published" bind:value={formData.date_published} /> 
     </div>
     <div class="form-field">
       <label for="thumbnail">URL des Beitragsbilds:</label>
-      <input type="text" id="thumbnail" bind:value={formData.thumbnail} /> <!-- Geändert zu formData.date_published -->
+      <input type="text" id="thumbnail" bind:value={formData.thumbnail} /> 
     </div>
 
     <div class="form-field">
       <label for="keywords">Keywords:</label>
-      <KeywordsInput keywords={formData.keywords} on:change={handleKeywordsChange} />
+      <KeywordsInput keywords={formData.keywords} onChange={handleKeywordsChange} />
     </div>
 
     <div class="form-field">
       <label for="authors">Autoren:</label>
-      <AuthorsInput authors={formData.author} onAuthorsChange={handleAuthorsChange} /> <!-- Korrekte Prop-Übergabe -->
+      <AuthorsInput authors={formData.author} onAuthorsChange={handleAuthorsChange} /> 
     </div>
     <div class="form-field">
       <label for="publishers">Herausgeber:</label>
-      <PublishersInput publishers={formData.publisher} onPublishersChange={handlePublishersChange} /> <!-- Korrekte Prop-Übergabe -->
+      <PublishersInput publishers={formData.publisher} onPublishersChange={handlePublishersChange} /> 
     </div>
 
-    <!-- NEUE FELDER MIT KEYWORDSINPUT -->
     <div class="form-field">
       <label for="links">Links:</label>
-      <KeywordsInput keywords={formData.links} on:change={handleLinksChange} placeholder="Link hinzufügen..." />
-      <!-- Optional: anderer Placeholder für Links -->
+      <KeywordsInput keywords={formData.links} onChange={handleLinksChange} placeholder="Link hinzufügen..." />
     </div>
 
     <div class="form-field">
       <label for="activities">Lern-Aktivitäten:</label>
-      <KeywordsInput keywords={formData.activities} on:change={handleActivitiesChange} placeholder="Aktivität hinzufügen..." />
+      <KeywordsInput keywords={formData.activities} onChange={handleActivitiesChange} placeholder="Aktivität hinzufügen..." />
     </div>
 
     <div class="form-field">
       <label for="educational_level">Bildungsstufen:</label>
-      <KeywordsInput keywords={formData.educational_level} on:change={handleEducationalLevelChange} placeholder="Bildungsstufe hinzufügen..." />
+      <KeywordsInput keywords={formData.educational_level} onChange={handleEducationalLevelChange} placeholder="Bildungsstufe hinzufügen..." />
     </div>
+
+    
 
     <div class="form-field">
       <label for="content">Raw Content:</label>
-      <textarea id="content" rows="4" bind:value={formData.content}></textarea> <!-- Geändert zu formData.summary -->
+      <textarea id="content" bind:this={contentTextarea}></textarea> 
     </div>
-
-    <!-- Debug JSON-Felder
-    <div class="form-field debug-json" style="margin-top: 20px;">
-        <div class="json-field-label">Andere JSON-Felder (Rohansicht zum Debuggen):</div> 
-        {#each Object.entries(formData) as [key, value]}
-            {#if typeof value === 'object' && value !== null && !['keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key)}
-                <div class="json-field-debug">
-                    <strong>{key}:</strong>
-                    <textarea rows="3" readonly>{JSON.stringify(value, null, 2)}</textarea>
-                </div>
-            {:else if !['id', 'title', 'content','thumbnail', 'content_type', 'url', 'description', 'summary', 'date_published', 'keywords', 'author', 'publisher', 'links', 'activities', 'educational_level'].includes(key) && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))}
-                 <div class="json-field-debug">
-                    <strong>{key} (als String, potenziell JSON):</strong>
-                    <textarea rows="3" bind:value={formData[key]} placeholder="JSON-String eingeben"></textarea>
-                </div>
-            {/if}
-        {/each}
-    </div>
-    -->
 
     <button type="submit" class="submit-button" disabled={isLoading}>
       {isLoading ? 'Speichern...' : 'Datensatz Speichern'}
@@ -290,7 +414,6 @@
 {/if}
 
 <style>
-  /* ... (Styles bleiben weitgehend gleich, außer der entfernte Selektor) ... */
   .record-form {
     max-width: 700px;
     margin: 20px auto;
@@ -304,16 +427,15 @@
     margin-bottom: 15px;
   }
   .form-field label,
-  .json-field-label { /* Hinzugefügt für das Debug-Label */
+  .json-field-label { 
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
   }
   .form-field input[type="text"],
   .form-field input[type="url"],
-  /* .form-field input[type="date"], Entfernt, da nicht mehr verwendet */
   .form-field select,
-  .form-field textarea {
+  .form-field textarea { 
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
@@ -372,5 +494,18 @@
     width: 100%;
     font-family: monospace;
     font-size: 0.9em;
+  }
+
+  :global(.EasyMDEContainer .CodeMirror) {
+    border-color: #ccc; 
+    border-radius: 4px; 
+  }
+  :global(.editor-toolbar) {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+  :global(.editor-statusbar) {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
   }
 </style>
