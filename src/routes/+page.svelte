@@ -119,9 +119,16 @@
       <h2>Suchergebnisse:</h2>
       <ul>
         {#each searchResults as result (result.id)}
-          <li on:click={() => handleSearchResultClick(result)} on:keydown={(e) => e.key === 'Enter' && handleSearchResultClick(result)} tabindex="0">
-            <strong>{result.title}</strong> (ID: {result.id})
-            <p>{result.description ? result.description.substring(0, 100) + '...' : 'Keine Beschreibung'}</p>
+          <li>
+            <button 
+              type="button" 
+              class="search-result-button" 
+              on:click={() => handleSearchResultClick(result)} 
+              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSearchResultClick(result); }}
+            >
+              <strong>{result.title}</strong> (ID: {result.id})
+              <p>{result.description ? result.description.substring(0, 100) + '...' : 'Keine Beschreibung'}</p>
+            </button>
           </li>
         {/each}
       </ul>
@@ -199,32 +206,82 @@
     margin-bottom: 15px;
   }
   .search-results {
-    margin-bottom: 20px;
+    margin-top: 20px;
     border: 1px solid #eee;
-    padding: 10px;
     border-radius: 5px;
+    padding: 10px;
   }
   .search-results h2 {
     margin-top: 0;
+    font-size: 1.2em;
   }
   .search-results ul {
-    list-style-type: none;
+    list-style: none;
     padding: 0;
   }
   .search-results li {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 5px; /* Etwas weniger Abstand, da der Button jetzt Padding hat */
+  }
+  .search-result-button {
+    background: none;
+    border: 1px solid transparent; /* Für konsistenten Platz, auch ohne Fokus */
+    color: inherit;
     cursor: pointer;
+    display: block; /* Nimmt die volle Breite des li ein */
+    padding: 10px;
+    text-align: left;
+    width: 100%;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
   }
-  .search-results li:last-child {
-    border-bottom: none;
+  .search-result-button:hover,
+  .search-result-button:focus {
+    background-color: #f0f0f0;
+    border-color: #007bff; /* Hebt den Button bei Fokus/Hover hervor */
+    outline: none; /* Entfernt den Standard-Browser-Fokusring, da wir einen eigenen Rand setzen */
   }
-  .search-results li:hover {
-    background-color: #f9f9f9;
+  .search-result-button strong {
+    display: block; /* Stellt sicher, dass der Titel in einer eigenen Zeile ist, falls gewünscht */
+    font-size: 1.1em;
+    margin-bottom: 5px;
   }
-  .search-results li p {
+  .search-result-button p {
+    margin: 0;
     font-size: 0.9em;
     color: #555;
-    margin-top: 5px;
+  }
+
+  .load-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .load-controls label {
+    font-weight: bold;
+  }
+  .load-controls input[type="number"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex-grow: 0;
+    width: 100px;
+  }
+  .load-controls button {
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .load-controls button:hover {
+    background-color: #0056b3;
+  }
+  .load-controls button:disabled {
+    background-color: #cccccc;
   }
 </style>

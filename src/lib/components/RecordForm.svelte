@@ -185,7 +185,7 @@
           initialValue: formData.content || '',
           spellChecker: false,
           minHeight: '200px', 
-          maxHeight: '600px', // Korrigiert: Maximale Höhe für den Editor
+          maxHeight: '200px', // Korrigiert: Maximale Höhe für den Editor
           toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
         });
         contentEditor.codemirror.on('change', () => {
@@ -426,8 +426,7 @@
   .form-field {
     margin-bottom: 15px;
   }
-  .form-field label,
-  .json-field-label { 
+  .form-field label { 
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
@@ -480,21 +479,12 @@
     color: #155724;
     border: 1px solid #c3e6cb;
   }
-   .json-field-debug {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #f9f9f9;
-    border: 1px dashed #ddd;
-  }
-  .json-field-debug strong {
-    display: block;
-    margin-bottom: 5px;
-  }
-  .json-field-debug textarea {
-    width: 100%;
-    font-family: monospace;
-    font-size: 0.9em;
-  }
+  /* Die folgenden Klassen wurden entfernt, da sie nicht im Markup verwendet werden:
+     .json-field-debug, 
+     .json-field-debug strong, 
+     .json-field-debug textarea,
+     .json-field-label 
+  */
 
   :global(.EasyMDEContainer .CodeMirror) {
     border-color: #ccc; 
