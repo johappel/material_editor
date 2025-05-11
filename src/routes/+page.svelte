@@ -92,7 +92,7 @@
   }
 
   function handleSearchResultClick(result) {
-    loadRecord(result); // Lädt den gesamten Datensatz direkt
+    loadRecord(result.id); // Lädt den Datensatz über die ID neu
     searchResults = []; // Suchergebnisse ausblenden nach Auswahl
     searchTerm = ''; // Suchfeld leeren
   }
