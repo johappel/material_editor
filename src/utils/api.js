@@ -1,9 +1,10 @@
 // src/lib/utils/api.js
 
-const N8N_LOAD_URL_BASE = 'https://n8n.rpi-virtuell.de/webhook/b33d9b27-ee96-41c1-b4be-030e79d2a01c';
-const N8N_SAVE_URL = 'https://n8n.rpi-virtuell.de/webhook-test/82fdca55-53bb-442e-a27d-627bf250bc7c';
+const N8N_LOAD_URL_BASE = import.meta.env.VITE_LOAD_WEBHOOK_URL;
+const N8N_SAVE_URL = import.meta.env.VITE_SAVE_WEBHOOK_URL;
 
 async function fetchData(url, options = {}) {
+    console.log('Attempting to fetch URL:', url); // Hinzugefügte Konsolenausgabe
     try {
         const response = await fetch(url, options);
         if (!response.ok) {
@@ -28,6 +29,8 @@ async function fetchData(url, options = {}) {
 
 export const getRecordDetails = (id) => {
     const url = `${N8N_LOAD_URL_BASE}?id=${id}`;
+    console.log('Constructed URL for getRecordDetails:', url); // Hinzugefügte Konsolenausgabe
+    console.log('VITE_LOAD_WEBHOOK_URL from env:', import.meta.env.VITE_LOAD_WEBHOOK_URL); // Überprüfung der Variable
     return fetchData(url);
 };
 

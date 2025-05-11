@@ -40,8 +40,14 @@
     isSearching = true;
     searchError = null;
     searchResults = [];
+    const searchUrl = import.meta.env.VITE_SEARCH_WEBHOOK_URL;
+    if (!searchUrl) {
+      searchError = "Such-Webhook-URL ist nicht konfiguriert.";
+      isSearching = false;
+      return;
+    }
     try {
-      const response = await fetch(`https://n8n.rpi-virtuell.de/webhook/a3ee2ad8-809a-4a26-8476-7a6d38499bfa?q=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(`${searchUrl}?q=${encodeURIComponent(searchTerm)}`);
       if (!response.ok) {
         throw new Error(`Fehler bei der Suche: ${response.statusText}`);
       }
